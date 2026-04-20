@@ -223,7 +223,7 @@ compile_ryzen_smu() {
         -v "$BUILD_DIR/$RYZEN_SMU_DIR:/build/$RYZEN_SMU_DIR:rw" \
         -v "$HEADERS_DIR:/kernel-headers:ro" \
         "$IMAGE_NAME" \
-        bash -c '
+        bash -c "
 set -euo pipefail
 cd /build/$RYZEN_SMU_DIR
 
@@ -237,7 +237,7 @@ make -C /kernel-headers \
     M=/build/$RYZEN_SMU_DIR \
     KERNELDIR=/kernel-headers \
     modules
-'
+"
 }
 
 verify_ryzen_smu() {
@@ -388,7 +388,7 @@ compile_ryzenadj() {
         -v "$BUILD_DIR/$RYZENADJ_DIR:/build/$RYZENADJ_DIR:rw" \
         -v "$BUILD_DIR/$RYZEN_SMU_DIR:/build/$RYZEN_SMU_DIR:ro" \
         "$IMAGE_NAME" \
-        bash -c '
+        bash -c "
 set -euo pipefail
 cd /build/$RYZENADJ_DIR
 
@@ -402,10 +402,10 @@ make
 
 # Verify binary was created
 if [ ! -f ryzenadj ]; then
-    echo "ERROR: ryzenadj binary not found after build"
+    echo \"ERROR: ryzenadj binary not found after build\"
     exit 1
 fi
-'
+"
 }
 
 verify_build() {
