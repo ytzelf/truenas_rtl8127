@@ -346,11 +346,14 @@ install_and_load_ryzen_smu() {
 
     # Verify module is loaded
     log "Checking if module is loaded with lsmod..."
-    if lsmod | grep -q "^ryzen_smu"; then
+    if lsmod | grep -q "ryzen_smu"; then
         log "✓ Module found in lsmod output"
     else
         log "✗ Module NOT found in lsmod output"
-        lsmod | head -10  # Show first 10 modules for debugging
+        log "Full lsmod output:"
+        lsmod
+        log "Checking for ryzen_smu specifically:"
+        lsmod | grep ryzen || log "No ryzen modules found"
         die "Verification failed: ryzen_smu module did not load"
     fi
 
