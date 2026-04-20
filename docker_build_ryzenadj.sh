@@ -299,7 +299,7 @@ install_and_load_ryzen_smu() {
     cp "$module_src" "$module_dest" || die "Failed to copy ryzen_smu.ko to $DRIVERS_DIR"
 
     # Check if module is already loaded
-    if lsmod | grep -q "^ryzen_smu"; then
+    if lsmod | awk '$1 == "ryzen_smu" {found=1} END {exit !found}'; then
         log "ryzen_smu module is already loaded. Checking version compatibility..."
         
         # Verify the loaded module version
@@ -346,7 +346,7 @@ install_and_load_ryzen_smu() {
 
     # Verify module is loaded
     log "Checking if module is loaded with lsmod..."
-    if lsmod | grep -q "ryzen_smu"; then
+    if lsmod | awk '$1 == "ryzen_smu" {found=1} END {exit !found}'; then
         log "✓ Module found in lsmod output"
     else
         log "✗ Module NOT found in lsmod output"
