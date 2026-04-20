@@ -246,9 +246,7 @@ verify_ryzen_smu() {
 
     [ -f "$module_path" ] || die "Compilation failed: ryzen_smu.ko not found"
 
-    log "--------------------------------------------------"
     log "✓ ryzen_smu kernel module compiled successfully"
-    log "--------------------------------------------------"
 
     # Display module metadata and verify kernel compatibility
     if command -v modinfo &> /dev/null; then
@@ -283,9 +281,7 @@ install_and_load_ryzen_smu() {
     # Copy kernel module to persistent storage and load it into kernel
     local module_src="$BUILD_DIR/$RYZEN_SMU_DIR/ryzen_smu.ko"
     
-    log "--------------------------------------------------"
     log "Installing and loading ryzen_smu kernel module..."
-    log "--------------------------------------------------"
 
     # Ensure drivers directory exists
     if [ ! -d "$DRIVERS_DIR" ]; then
@@ -295,7 +291,7 @@ install_and_load_ryzen_smu() {
 
     # Copy module to persistent location
     local module_dest="$DRIVERS_DIR/ryzen_smu.ko"
-    log "Copying module from $module_src to $module_dest..."
+    log "Copying module to $module_dest..."
     cp "$module_src" "$module_dest" || die "Failed to copy ryzen_smu.ko to $DRIVERS_DIR"
 
     # Check if module is already loaded
@@ -329,7 +325,7 @@ install_and_load_ryzen_smu() {
     fi
 
     # Attempt to load the module
-    log "Loading ryzen_smu module with insmod..."
+    log "Loading ryzen_smu module..."
     insmod_output=""
     if ! insmod_output=$(insmod "$module_dest" 2>&1); then
         # Check if it's an "exists" error (module already loaded)
@@ -345,27 +341,17 @@ install_and_load_ryzen_smu() {
     sleep 2
 
     # Verify module is loaded
-    log "Checking if module is loaded with lsmod..."
     if lsmod | awk '$1 == "ryzen_smu" {found=1} END {exit !found}'; then
-        log "✓ Module found in lsmod output"
+        log "✓ Module loaded successfully"
     else
-        log "✗ Module NOT found in lsmod output"
-        log "Full lsmod output:"
-        lsmod
-        log "Checking for ryzen_smu specifically:"
-        lsmod | grep ryzen || log "No ryzen modules found"
         die "Verification failed: ryzen_smu module did not load"
     fi
-
-    log "Module successfully loaded. Verifying sysfs interface..."
 
     # Verify sysfs interface is available
     if [ ! -d /sys/kernel/ryzen_smu_drv ]; then
         log "WARNING: sysfs interface not found at /sys/kernel/ryzen_smu_drv"
         log "This may indicate module loading issues or kernel compatibility problems"
-        log "Checking dmesg for module messages..."
         dmesg | tail -10 | grep -i ryzen || log "No recent ryzen messages in dmesg"
-        log "Continuing anyway - RyzenAdj may still work in fallback mode"
     else
         log "✓ sysfs interface found"
     fi
@@ -373,29 +359,21 @@ install_and_load_ryzen_smu() {
     if [ ! -f /sys/kernel/ryzen_smu_drv/drv_version ]; then
         log "WARNING: drv_version sysfs file not found"
         log "Module may be loaded but interface incomplete"
-    else
-        log "✓ drv_version sysfs file found"
     fi
 
     # Read and display version
     local version_str
     version_str=$(cat /sys/kernel/ryzen_smu_drv/drv_version 2>/dev/null || echo "unknown")
-    log "Module version from sysfs: $version_str"
+    log "Module version: $version_str"
 
     # Validate version format (major=0, minor=1, patch>=7)
     if ! echo "$version_str" | grep -qE "^0\.1\.[0-9]+"; then
         die "Version check failed: expected 0.1.x format but got '$version_str'"
     fi
 
-    log "Check module messages for additional info:"
-    dmesg | tail -n 20 | grep -i "ryzen_smu" || log "(No recent ryzen_smu messages)"
-
-    log "--------------------------------------------------"
     log "SUCCESS: ryzen_smu module loaded and verified"
     log "Module location: $module_dest"
-    log "Module version: $version_str"
     log "sysfs interface: /sys/kernel/ryzen_smu_drv/"
-    log "--------------------------------------------------"
 
     RYZEN_SMU_INSTALLED_PATH="$module_dest"
 }
@@ -406,10 +384,8 @@ install_and_load_ryzen_smu() {
 
 compile_ryzenadj() {
     # Compile RyzenAdj userspace utility in Docker with ryzen_smu headers
-    log "--------------------------------------------------"
     log "Compiling RyzenAdj userspace binary..."
     log "Note: Module will be detected at runtime by RyzenAdj"
-    log "--------------------------------------------------"
 
     docker run --rm \
         -v "$BUILD_DIR/$RYZENADJ_DIR:/build/$RYZENADJ_DIR:rw" \
@@ -441,9 +417,7 @@ verify_build() {
 
     [ -f "$binary_src" ] || die "Compilation failed: ryzenadj binary not found"
 
-    log "--------------------------------------------------"
     log "✓ RyzenAdj binary compiled successfully"
-    log "--------------------------------------------------"
 
     # Display binary metadata
     log "Binary metadata:"
@@ -480,9 +454,7 @@ install_ryzenadj_binary() {
     # Copy RyzenAdj binary to persistent storage and verify installation
     local binary_src="$BUILD_DIR/$RYZENADJ_DIR/build/ryzenadj"
     
-    log "--------------------------------------------------"
     log "Installing RyzenAdj binary to persistent storage..."
-    log "--------------------------------------------------"
 
     # Ensure scripts directory exists
     if [ ! -d "$SCRIPTS_DIR" ]; then
@@ -492,7 +464,7 @@ install_ryzenadj_binary() {
 
     # Copy binary to persistent location
     local binary_dest="$SCRIPTS_DIR/ryzenadj"
-    log "Copying binary from $binary_src to $binary_dest..."
+    log "Copying binary to $binary_dest..."
     cp "$binary_src" "$binary_dest" || die "Failed to copy ryzenadj binary to $SCRIPTS_DIR"
 
     # Make it executable
@@ -521,11 +493,9 @@ install_ryzenadj_binary() {
         log "Help output verified - binary is functional"
     fi
 
-    log "--------------------------------------------------"
     log "SUCCESS: RyzenAdj binary installed and verified"
     log "Binary location: $binary_dest"
     log "Command to run: $binary_dest [options]"
-    log "--------------------------------------------------"
 
     # Show quick reference for usage
     log ""
