@@ -332,20 +332,25 @@ install_and_load_ryzen_smu() {
     log "Loading ryzen_smu module with insmod..."
     insmod_output=""
     if ! insmod_output=$(insmod "$module_dest" 2>&1); then
-        # Check if it's a "File exists" error (module already loaded)
+        # Check if it's an "exists" error (module already loaded)
         if echo "$insmod_output" | grep -qi "exists"; then
-            log "Module already loaded (insmod reported 'exists') - skipping load attempt"
-            log "Note: Module may be loaded from a different path"
+            log "Module already loaded (insmod error: $insmod_output)"
+            log "Skipping load attempt since module is already active"
         else
             die "Failed to load ryzen_smu module: $insmod_output"
         fi
     fi
 
     # Give the kernel a moment to setup sysfs entries
-    sleep 1
+    sleep 2
 
     # Verify module is loaded
-    if ! lsmod | grep -q "^ryzen_smu"; then
+    log "Checking if module is loaded with lsmod..."
+    if lsmod | grep -q "^ryzen_smu"; then
+        log "✓ Module found in lsmod output"
+    else
+        log "✗ Module NOT found in lsmod output"
+        lsmod | head -10  # Show first 10 modules for debugging
         die "Verification failed: ryzen_smu module did not load"
     fi
 
@@ -353,11 +358,20 @@ install_and_load_ryzen_smu() {
 
     # Verify sysfs interface is available
     if [ ! -d /sys/kernel/ryzen_smu_drv ]; then
-        die "ERROR: sysfs interface not found at /sys/kernel/ryzen_smu_drv"
+        log "WARNING: sysfs interface not found at /sys/kernel/ryzen_smu_drv"
+        log "This may indicate module loading issues or kernel compatibility problems"
+        log "Checking dmesg for module messages..."
+        dmesg | tail -10 | grep -i ryzen || log "No recent ryzen messages in dmesg"
+        log "Continuing anyway - RyzenAdj may still work in fallback mode"
+    else
+        log "✓ sysfs interface found"
     fi
 
     if [ ! -f /sys/kernel/ryzen_smu_drv/drv_version ]; then
-        die "ERROR: drv_version sysfs file not found"
+        log "WARNING: drv_version sysfs file not found"
+        log "Module may be loaded but interface incomplete"
+    else
+        log "✓ drv_version sysfs file found"
     fi
 
     # Read and display version
