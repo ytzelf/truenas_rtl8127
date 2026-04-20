@@ -333,8 +333,9 @@ install_and_load_ryzen_smu() {
     insmod_output=""
     if ! insmod_output=$(insmod "$module_dest" 2>&1); then
         # Check if it's a "File exists" error (module already loaded)
-        if echo "$insmod_output" | grep -q "File exists"; then
-            log "Module 'File exists' error detected - module already loaded"
+        if echo "$insmod_output" | grep -qi "exists"; then
+            log "Module already loaded (insmod reported 'exists') - skipping load attempt"
+            log "Note: Module may be loaded from a different path"
         else
             die "Failed to load ryzen_smu module: $insmod_output"
         fi
