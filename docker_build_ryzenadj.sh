@@ -260,7 +260,11 @@ verify_ryzen_smu() {
         module_vermagic=$(modinfo "$module_path" 2>/dev/null | grep '^vermagic:' | cut -d' ' -f2 || echo "unknown")
         kernel_vermagic=$(cat /proc/version | grep -oP 'version \K[^ ]+' || echo "unknown")
         
-        if [ "$module_vermagic" != "$kernel_vermagic" ]; then
+        if [ "$module_vermagic" = "unknown" ]; then
+            log "INFO: Module vermagic not available (module may have been built without version info)"
+            log "  This is normal for some kernel header configurations."
+            log "  Module loading may still succeed if kernel ABI is compatible."
+        elif [ "$module_vermagic" != "$kernel_vermagic" ]; then
             log "WARNING: Kernel vermagic mismatch detected"
             log "  Module: $module_vermagic"
             log "  Kernel: $kernel_vermagic"
@@ -308,13 +312,18 @@ install_and_load_ryzen_smu() {
             if echo "$version_str" | grep -qE "^0\.1\.[0-9]+"; then
                 log "Version check passed: module is compatible"
             else
-                die "Module version mismatch: expected 0.1.x but got $version_str. Cannot proceed."
+                log "WARNING: Module version mismatch detected!"
+                log "  Expected: 0.1.x (compatible)"
+                log "  Found: $version_str"
+                log "  RyzenAdj may not work properly with this module version."
+                log "  Consider unloading the module and letting the script install the correct version."
             fi
         else
             log "WARNING: Could not verify module version (drv_version not accessible)."
             log "Module may be incompatible. Proceeding with caution..."
         fi
         
+        log "Skipping module installation since it's already loaded."
         RYZEN_SMU_INSTALLED_PATH="$module_dest"
         return 0
     fi
